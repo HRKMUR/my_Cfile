@@ -1,7 +1,13 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <ncurses.h>
 #include <locale.h>
- #include <sys/time.h>
+#include <sys/time.h>
+#include <string.h>
+#include <time.h>
+
+ 
+
 
  void right(int map[100][45]){
       for(int x=0;x<100;x++){
@@ -75,14 +81,52 @@ int check_side_slid(int map[100][45]){
      for(int y=0;y<=45;y++){
          if(map[1][y]==3){
              return 0;//左側に敵がいたら
-         }else if(map[98][y]==3){
+         }else if(map[96][y]==3){
              return 1;//右側に敵がいたら
          }
      }
      return 2;//左右どちらにもいない
  }
 
+void shot(int map[100][45]){
+     for(int x=0;x<=100;x++){
+         if(map[x][43]==1){
+             map[x][42]=5;
+             break;
+         }
+     }
+ }
 
+
+
+void slid_shel2(int map[100][45],int x,int y){
+     int y_save=y;
+     int y_last=y-4;
+     for(y=y-1;y>=y_last;y--){
+         if(y-1<=1){
+             map[x][y+1]=0;
+        }else if(map[x][y]==3){
+            map[x][y]=0;
+            map[x][y_save]=0;
+            break;
+ 
+        }else{
+            map[x][y]=5;
+            map[x][y+1]=0;
+       }
+     }
+} 
+ 
+ 
+ void slid_shell(int map[40][45]){
+      for(int y=0;y<=45;y++){
+         for(int x=0;x<=100;x++){
+             if(map[x][y]==5 ){
+                 slid_shel2(map,x,y);
+             }
+         }
+      }
+ }
 
 
 void maps(int field[100][45]){
@@ -105,9 +149,12 @@ void maps(int field[100][45]){
                                    case 4:
                                            mvprintw(y+10,x+75,"=");//|
                                            break;
-                                   case 5:
-                                           mvprintw(y+10,x+75,"l");//l
-                                           break;
+					case 5:
+						mvprintw(y+10,x+75,"l");//l
+						break;
+					case 6:
+						mvprintw(y+10,x+75,"*");//l
+						break;
                            }
  
                    }
@@ -117,14 +164,46 @@ void maps(int field[100][45]){
  
  }
 
+int speed(int field[100][45]){
+	int x,y,count;
+	for(x=0;x<=100;x++){
+		for(y=0;y<=45;y++){
+			if(field[x][y]==3){
+				count++;
+			}		
+		}
+	}
+	return count;	
+}
+
+void enemy_shell(int field[100][45]){
+	int s;
+	for(int x=100;x!=0;x--){
+		for(int y=45;y!=0;y--){
+			if(field[x][y]==3){
+				s = rand()%5+1;
+				if(s==2){
+					field[x][y+1]=6;	
+					break;
+
+				}		
+				
+			}
+		}
+	}
+}
+
 
 int main(void){
+	
+	srand(time(NULL));
 
 	initscr();
 	int 	map[100][45]={0};
 	int flag=1; //0が左1が右
 
-	 for(int y=0;y<45;y++){
+	
+ for(int y=0;y<45;y++){
             map[0][y]=2;
         }
         for(int y=0;y<45;y++){
@@ -146,13 +225,29 @@ int main(void){
 	gettimeofday(&_time, NULL);
 	long sec = _time.tv_sec;
 	long time=_time.tv_sec;
-	int ch = getch();	
+	long usec = _time.tv_usec;
+	long time_mil;
+	int ch = getch();
+	long time2,shell_mil;	
+	timeout(75);
 	while (true) {
 		gettimeofday(&_time, NULL);
 		sec = _time.tv_sec;
+		usec = _time.tv_usec;
+		time_mil = (int)usec*0.00001;
+		shell_mil = (int)usec*0.001;
 		
+	//	time_shell = (int)usec*0.0001;		
+		
+		if(time2!=shell_mil){
+			 slid_shell(map);
+			 time2 = shell_mil;
+			 maps(map);
+	
+		}
 
-		if(sec!=time){
+		if(time_mil!=time){
+			enemy_shell(map);
 			time=sec;
 			if(flag==1 && check_side_slid(map)==1){
 			        down_enemy(map);
@@ -168,7 +263,8 @@ int main(void){
 			clear();
 			maps(map);
 
-		}	
+		}
+		   	
 		if(ch = getch()){
 	    		if (ch == 'q'){ 
 				break;
@@ -180,6 +276,9 @@ int main(void){
 				clear();
 				left(map);
 				maps(map);
+			}else if(ch=='w'){
+				shot(map);
+				maps(map);	
 			}
 		
   		}
